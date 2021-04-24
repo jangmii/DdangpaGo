@@ -4,6 +4,7 @@ const router = express.Router();
 const libKakaoWork = require('../libs/kakaoWork');
 
 router.get('/', async (req, res, next) => {
+
 	// 유저 목록 검색 (1)
 	const users = await libKakaoWork.getUserList();
 
@@ -17,50 +18,47 @@ router.get('/', async (req, res, next) => {
 		conversations.map((conversation) =>
 			libKakaoWork.sendMessage({
 				conversationId: conversation.id,
-				text: '설문조사 이벤트',
+				text: '땅파고 챗봇',
 				blocks: [
 					{
-						text: 'Push alarm message',
-						blocks: [
+						type: 'button',
+						text: '마법의 소라고동',
+						style: 'default',
+					},
+					{
+						type: 'button',
+						text: '한국인만 알아볼수 있는 번역기',
+						style: 'default',
+					},
+					{
+						type: 'action',
+						elements: [
 							{
 								type: 'button',
-								text: '마법의 소라고동',
+								action_type: 'call_modal',
+								value: 'fibona_chiken',
+								text: '피보나치킨',
 								style: 'default',
 							},
 							{
 								type: 'button',
-								text: '한국인만 알아볼수 있는 번역기',
+								text: '퇴근시간 타이머',
+								style: 'default',
+							},
+						],
+					},
+					{
+						type: 'action',
+						elements: [
+							{
+								type: 'button',
+								text: '기원',
 								style: 'default',
 							},
 							{
-								type: 'action',
-								elements: [
-									{
-										type: 'button',
-										text: '피보나치킨',
-										style: 'default',
-									},
-									{
-										type: 'button',
-										text: '퇴근시간 타이머',
-										style: 'default',
-									},
-								],
-							},
-							{
-								type: 'action',
-								elements: [
-									{
-										type: 'button',
-										text: '기원',
-										style: 'default',
-									},
-									{
-										type: 'button',
-										text: '운세 뽑기',
-										style: 'default',
-									},
-								],
+								type: 'button',
+								text: '운세 뽑기',
+								style: 'default',
 							},
 						],
 					},
@@ -71,7 +69,9 @@ router.get('/', async (req, res, next) => {
 
 	// 응답값은 자유롭게 작성하셔도 됩니다.
 	res.json({
-		result: true,
+		users,
+		conversations,
+		messages,
 	});
 });
 
@@ -80,58 +80,25 @@ router.post('/request', async (req, res, next) => {
 	const { message, value } = req.body;
 
 	switch (value) {
-		case 'cafe_survey':
-			// 설문조사용 모달 전송 (3)
+		case 'fibona_chiken':
+			// 피보나치킨용 모달 전송 (3)
 			return res.json({
 				view: {
-					title: '설문조사',
-					accept: '설문조사 전송하기',
+					title: '피보나치킨',
+					accept: '전송',
 					decline: '취소',
-					value: 'cafe_survey_results',
+					value: 'fibona_chiken_results',
 					blocks: [
 						{
 							type: 'label',
-							text: '카페 평점을 알려주세요',
-							markdown: false,
-						},
-						{
-							type: 'select',
-							name: 'rating',
-							required: true,
-							options: [
-								{
-									text: '1점',
-									value: '1',
-								},
-								{
-									text: '2점',
-									value: '2',
-								},
-								{
-									text: '3점',
-									value: '3',
-								},
-								{
-									text: '4점',
-									value: '4',
-								},
-								{
-									text: '5점',
-									value: '5',
-								},
-							],
-							placeholder: '평점',
-						},
-						{
-							type: 'label',
-							text: '바라는 점이 있다면 알려주세요!',
+							text: '치킨을 먹을 인원수를 알려주세요',
 							markdown: false,
 						},
 						{
 							type: 'input',
-							name: 'wanted',
-							required: false,
-							placeholder: 'ex) 와플을 팔면 좋겠습니다',
+							name: 'people',
+							required: true,
+							placeholder: '인원수를 입력해주세요',
 						},
 					],
 				},
@@ -148,51 +115,46 @@ router.post('/callback', async (req, res, next) => {
 	const { message, actions, action_time, value } = req.body;
 
 	switch (value) {
-		case 'cafe_survey_results':
-			// 설문조사 응답 결과 메세지 전송 (3)
+		case 'fibona_chiken_results':
+			// 피보나치킨 응답 결과 메세지 전송  -- 아직 인원수에 따라 재미있는 문구는 생각못함.
 			await libKakaoWork.sendMessage({
 				conversationId: message.conversation_id,
-				text: '설문조사에 응해주셔서 감사합니다!',
+				text: '최적의 치킨 수를 찾았습니다!',
 				blocks: [
 					{
+						type: 'header',
+						text: '🐓 최적의 치킨 수 🍗',
+						style: 'blue',
+					},
+
+					{
 						type: 'text',
-						text: '설문조사에 응해주셔서 감사합니다! 🎁',
+						text: actions.people+' 명이 배부르게 먹으려면',
 						markdown: true,
 					},
 					{
 						type: 'text',
-						text: '*답변 내용*',
+						text: fibo(actions.people)+' 마리를 시키세요!',
 						markdown: true,
 					},
 					{
-						type: 'description',
-						term: '평점',
-						content: {
-							type: 'text',
-							text: actions.rating,
-							markdown: false,
-						},
-						accent: true,
+						type: 'image_link',
+						url:
+							'https://image.chosun.com/sitedata/image/201705/31/2017053100563_0.jpg',
 					},
 					{
-						type: 'description',
-						term: '바라는 점',
+						type: 'context',
 						content: {
 							type: 'text',
-							text: actions.wanted,
-							markdown: false,
+							text:
+								'[남기지 않는다.치킨.피보나치킨!](https://fibonachicken.herokuapp.com/)',
+							markdown: true,
 						},
-						accent: true,
-					},
-					{
-						type: 'description',
-						term: '시간',
-						content: {
-							type: 'text',
-							text: action_time,
-							markdown: false,
+						image: {
+							type: 'image_link',
+							url:
+								'https://cdn.icon-icons.com/icons2/2348/PNG/512/link_icon_142996.png',
 						},
-						accent: true,
 					},
 				],
 			});
@@ -204,3 +166,23 @@ router.post('/callback', async (req, res, next) => {
 });
 
 module.exports = router;
+
+
+//피보나 치킨 수 구하기
+function fibo(number){
+	var d = [0,1,1], i, res=0;
+	
+	for(i=2;d[i-1]<number;i++){
+		d[i]=d[i-1]+d[i-2];
+	}
+
+	for(;i && number;i--){
+		if(number>=d[i]){
+			number-=d[i];
+			res+=d[i-1];
+		   }
+	}
+	return res
+}
+
+
